@@ -1,0 +1,44 @@
+<html ng-app="vensplitApp">
+<head>
+<script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+<script>
+var vensplitApp = angular.module('vensplitApp', []);
+
+vensplitApp.controller("VensplitController", function ($scope, $http) {
+  $scope.friends = [];
+  $scope.splitters = [];
+  $scope.load = function() {
+    $http.get("data").success(function(data) {
+      $scope.friends = data;
+      });
+  };
+  $scope.addSplitter = function(user) {
+    $scope.splitters.push(user);
+    $scope.friends.splice($scope.friends.indexOf(user), 1);
+  };
+});
+
+</script>
+<style type="text/css">
+.profile_img {
+  width: 25px;
+  height: 25px;
+}
+</style>
+</head>
+<body ng-controller="VensplitController">
+Amount: <input type="number" ng-model="amount" />
+<input type="text" ng-model="query"></input>
+<button id="load" ng-click="load()">Load!</button>
+<div>
+<ul>
+<li ng-click="addSplitter(user)" ng-repeat="user in friends | filter:query | limitTo:2 "><img class="profile_img" src="{{user.profile_picture_url}}" />{{ user.display_name }}</li>
+</ul>
+<h3>Splitters</h3>
+<ul>
+<li ng-repeat="user in splitters"><img class="profile_img" src="{{user.profile_picture_url}}" />{{ user.display_name }}</li>
+</ul>
+<span ng-model="charge">0</span>
+</div>
+</body>
+</html>
