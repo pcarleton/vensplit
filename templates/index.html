@@ -1,6 +1,8 @@
 <html ng-app="vensplitApp">
 <head>
 <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.0.1/angular.min.js"></script>
+<script src="/static/bootstrap-custom/ui-bootstrap-custom-0.10.0.js"></script>
+<script src="/static/bootstrap-custom/ui-bootstrap-custom-tpls-0.10.0.js"></script>
 <script>
 var vensplitApp = angular.module('vensplitApp', []);
 
@@ -19,6 +21,7 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
 });
 
 </script>
+<link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
 <style type="text/css">
 .profile_img {
   width: 25px;
@@ -27,8 +30,8 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
 </style>
 </head>
 <body ng-controller="VensplitController">
-Amount: <input type="number" ng-model="amount" />
-<input type="text" ng-model="query"></input>
+<input type="number" ng-model="amount" placeholder="How much was it?"/><br />
+<input type="text" ng-model="query" placeholder="Who took part?"></input>
 <button id="load" ng-click="load()">Load!</button>
 <div>
 <ul>
