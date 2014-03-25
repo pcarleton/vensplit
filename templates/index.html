@@ -24,13 +24,14 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
     $scope.splitters.splice($scope.splitters.indexOf(user), 1);
     $scope.updateCharge();
   };
-  $scope.tip = 0.0;
+  $scope.tipAmount = 0.0;
   $scope.charge = 0;
   $scope.updateCharge = function() {
     console.log("Here!");
     var amt = $scope.amount || 0;
-    var tip = parseFloat($scope.tip);
-    $scope.charge = (amt*(1.0 + tip )/($scope.splitters.length + 1))
+    $scope.tipAmount = amt*parseFloat($scope.tip) || 0;
+    $scope.charge = ((amt + $scope.tipAmount)/($scope.splitters.length + 1));
+    console.log($scope.charge)
   };
   $scope.$watch('tip', $scope.updateCharge);
   $scope.$watch('amount', $scope.updateCharge);
@@ -47,8 +48,12 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
   min-width: 0px !important;
   right: 12px;
 }
+.btn-group > .btn {
+  width: 25%;
+}
 .btn-group {
   width: 100% !important;
+  padding-bottom: 3px;
 }
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -60,10 +65,12 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
 </head>
 <body ng-controller="VensplitController">
 <div class="container">
+<h2>VenSplit</h2>
+<h4>Split bills quickly using Venmo</h4>
 <input class="form-control" type="number" ng-model="amount" placeholder="How much was it?"/><br />
 <input class="form-control" type="text"
   ng-model="selected"
-  placeholder="Who took part2?"
+  placeholder="Who owes you?"
   typeahead="friend.display_name for friend in friends | filter:{display_name:$viewValue} | limitTo:5"
   typeahead-on-select="addSplitter($item)"
   typeahead-template-url="dropTemplate.html" ></input>
@@ -81,8 +88,9 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
 </div>
 <button type="button" class="btn form-control btn-info">
 
-Charge everyone $<span>{{ charge|number:2 }}</span>
+Charge {{splitters.length}} people $<span>{{ charge|number:2 }}</span>
 </button>
+<em ng-show="tipAmount">Tip is ${{tipAmount|number:2}}</em>
 </div>
 </body>
 </html>

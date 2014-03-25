@@ -28,11 +28,6 @@ func init() {
 }
 
 func handler(w http.ResponseWriter, r *http.Request) *appError {
-  //token := r.FormValue("token");
-  //if token == "" {
-  //  return &appError{nil, "No token provided.", 500}
-  //}
-
   c := appengine.NewContext(r)
   d := datastore.New(c)
   token, err := d.FindToken(user.Current(c).Email)
@@ -75,6 +70,9 @@ func saveToken(w http.ResponseWriter, r *http.Request) *appError {
   c := appengine.NewContext(r)
   if appErr := loadConfig(r); appErr != nil {
     return appErr
+  }
+  if user.Current(c) == nil {
+    return &appError{nil, "Must be signed in to save token.", 400}
   }
   code := r.FormValue("code")
   if code == "" {
