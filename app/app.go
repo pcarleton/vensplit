@@ -22,7 +22,7 @@ var (
 
 func init() {
   http.Handle("/data", appHandler(handler))
-  http.Handle("/oauth", appHandler(oauthHandler))
+  http.Handle("/", appHandler(oauthHandler))
   http.Handle("/savetoken", appHandler(saveToken))
   http.Handle("/saveconfig", appHandler(saveConfigHandler))
 }
@@ -91,6 +91,7 @@ func saveToken(w http.ResponseWriter, r *http.Request) *appError {
   if err := d.SaveToken(user.Current(c).Email, t.Token); err != nil {
     return &appError{err, "Error saving token.", 500}
   }
+  http.Redirect(w, r, "/app", http.StatusFound)
   return nil
 }
 
