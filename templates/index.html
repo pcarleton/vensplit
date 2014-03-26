@@ -10,43 +10,81 @@ var vensplitApp = angular.module('vensplitApp', ['ui.bootstrap']);
 vensplitApp.controller("VensplitController", function ($scope, $http) {
   $scope.splitters = [];
   $scope.friends = [];
+  $scope.tipAmount = 0.0;
+  $scope.amount = 0;
+
   $http.get("data").success(function(data) {
     $scope.friends = data;
   });
+
   $scope.addSplitter = function(user) {
     $scope.selected = "";
     $scope.splitters.push(user);
     $scope.friends.splice($scope.friends.indexOf(user), 1);
     $scope.updateCharge();
   };
+
   $scope.removeSplitter = function(user) {
     $scope.friends.push(user);
     $scope.splitters.splice($scope.splitters.indexOf(user), 1);
     $scope.updateCharge();
   };
-  $scope.tipAmount = 0.0;
-  $scope.charge = 0;
+
   $scope.updateCharge = function() {
-    console.log("Here!");
-    var amt = $scope.amount || 0;
+    var amt = $scope.bill || 0;
     $scope.tipAmount = amt*parseFloat($scope.tip) || 0;
-    $scope.charge = ((amt + $scope.tipAmount)/($scope.splitters.length + 1));
-    console.log($scope.charge)
+    $scope.amount = ((amt + $scope.tipAmount)/($scope.splitters.length + 1));
   };
   $scope.$watch('tip', $scope.updateCharge);
-  $scope.$watch('amount', $scope.updateCharge);
+  $scope.$watch('bill', $scope.updateCharge);
+
+  $scope.status = "info";
+
+
+  $scope.sendCharges = function() {
+    var chargeData = {};
+    chargeData.ids = [];
+    angular.forEach($scope.splitters, function(user) {
+      chargeData.ids.push(user.id);
+    });
+    chargeData.amount = $scope.amount;
+    chargeData.note = $scope.note;
+    console.log(chargeData);
+    $scope.status = "warning";
+    $http.post("charge", chargeData).success(function(data) {
+      console.log(data);
+      var succeeded = true;
+      // Make sure they all succeeded.
+      for (var i = 0; i < chargeData.ids.length; i++) {
+        succeeded = succeeded && data[parseInt(chargeData.ids[i])];
+      }
+      $scope.status = (succeeded) ? "success" : "danger";
+    }).error(function(data) {
+      console.log(data);
+      $scope.status = "danger";
+    });
+
+  };
 });
 
 </script>
 <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.3/css/bootstrap.min.css" rel="stylesheet">
 <style type="text/css">
+body {
+  font-size: 20px;
+}
 .profile_img {
   width: 25px;
   height: 25px;
 }
+.form-control {
+  height: 38px;
+  font-size: 20px;
+}
 .dropdown-menu {
   min-width: 0px !important;
   right: 11px;
+  font-size: 20px;
 }
 .btn {
   font-size: 21px;
@@ -60,21 +98,23 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
 }
 .btn-group {
   width: 100% !important;
-  padding-bottom: 3px;
+  padding-bottom: 9px;
 }
 </style>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <script type="text/ng-template" id="dropTemplate.html">
 <a ><img ng-src="{{match.model.profile_picture_url}}" width="16">
       <span bind-html-unsafe="match.label"></span>
-      </a>
+</a>
 </script>
 </head>
+
 <body ng-controller="VensplitController">
 <div class="container">
 <h2>VenSplit</h2>
-<h4>Split bills quickly using Venmo</h4>
-<input class="form-control" type="number" ng-model="amount" placeholder="How much was it?"/><br />
+<h4>Split bills easily using Venmo</h4>
+<input class="form-control" type="text" ng-model="note" placeholder="What did you buy?"/><br />
+<input class="form-control" type="number" ng-model="bill" placeholder="How much was it?"/><br />
 <input class="form-control" type="text"
   ng-model="selected"
   placeholder="Who owes you?"
@@ -93,8 +133,8 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
         <button type="button" class="btn btn-primary" ng-model="tip" btn-radio="0.20">20%</button>
         <button type="button" class="btn btn-primary" ng-model="tip" btn-radio="0.25">25%</button>
 </div>
-<button type="button" class="btn btn-info">
-Charge {{splitters.length}} people ${{ charge|number:2 }}
+<button ng-click="sendCharges()" type="button" class="btn btn-{{status}}">
+Charge {{splitters.length}} people ${{ amount|number:2 }}
 </button>
 <em ng-show="tipAmount">Tip is ${{tipAmount|number:2}}</em>
 </div>

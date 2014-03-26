@@ -1,6 +1,7 @@
 package app
 
 import (
+  "bytes"
   "fmt"
   "net/http"
   "appengine"
@@ -25,14 +26,14 @@ func init() {
   http.Handle("/", appHandler(oauthHandler))
   http.Handle("/savetoken", appHandler(saveToken))
   http.Handle("/saveconfig", appHandler(saveConfigHandler))
+  http.Handle("/charge", appHandler(chargeHandler))
 }
 
-func handler(w http.ResponseWriter, r *http.Request) *appError {
-  c := appengine.NewContext(r)
+func initializeApiService(c appengine.Context) (*api.Service, error) {
   d := datastore.New(c)
   token, err := d.FindToken(user.Current(c).Email)
   if err != nil {
-    return &appError{err, "Error fetching token.", 500}
+    return nil, err
   }
 
   transport := oauth.Transport{
@@ -41,8 +42,16 @@ func handler(w http.ResponseWriter, r *http.Request) *appError {
     Transport: urlfetch.Client(c).Transport,
   }
 
-  svc := api.NewFromClient(transport.Client(), token.AccessToken)
-  
+  return api.NewFromClient(transport.Client(), token.AccessToken), nil
+}
+
+func handler(w http.ResponseWriter, r *http.Request) *appError {
+  c := appengine.NewContext(r)
+  svc, err := initializeApiService(c)
+  if err != nil {
+    return &appError{err, "Error creating api service.", 500}
+  }
+
   meInfo, err := svc.Me()
   if err != nil {
     return &appError{err, "Error getting me info.", 500}
@@ -57,7 +66,60 @@ func handler(w http.ResponseWriter, r *http.Request) *appError {
   return nil
 }
 
+func chargeHandler(w http.ResponseWriter, r *http.Request) *appError {
+  c := appengine.NewContext(r)
+  svc, err := initializeApiService(c)
+  if err != nil {
+    return &appError{err, "Error creating api service.", 500}
+  }
+  results := make(map[string]bool)
+  dec := json.NewDecoder(r.Body)
+  type IDList []string
+  var postData struct {
+    Note string `json:"note"`
+    Amount float64 `json:"amount"`
+    IDs IDList `json:"ids"`
+  }
+  //var postData map[string]interface{}
+
+  if err := dec.Decode(&postData); err != nil {
+    return &appError{err, "Error parsing post data.", 500}
+  }
+
+  c.Infof("%+v", postData)
+  if postData.Amount > 0 {
+    postData.Amount = postData.Amount * -1;
+  }
+
+  paymentRequest := api.MakePaymentRequest{
+    Amount: postData.Amount,
+    Note: postData.Note + " | via vensplit.com",
+    Audience: "public", // Maybe make this an option?
+  }
+  for _, id := range postData.IDs {
+    paymentRequest.UserID = id
+    _, err := svc.MakePayment(&paymentRequest)
+    results[id] = err == nil
+    if err != nil {
+      c.Errorf("%v", err)
+    }
+  }
+  jbytes, _ := json.Marshal(results)
+  buf := bytes.NewBuffer(jbytes)
+  fmt.Fprintf(w, "%v", buf.String())
+  return nil
+}
+
 func oauthHandler(w http.ResponseWriter, r *http.Request) *appError {
+  c := appengine.NewContext(r)
+  d := datastore.New(c)
+  if user.Current(c) != nil {
+    if _, err := d.FindToken(user.Current(c).Email); err == nil {
+      // Maybe just serve the static file to avoid a redirect
+      http.Redirect(w, r, "/app", http.StatusFound)
+      return nil
+    }
+  }
   if appErr := loadConfig(r); appErr != nil {
     return appErr
   }
