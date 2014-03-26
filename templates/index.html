@@ -49,14 +49,11 @@ vensplitApp.controller("VensplitController", function ($scope, $http) {
     });
     chargeData.amount = $scope.amount;
     chargeData.note = $scope.note;
-    console.log(chargeData);
     $scope.status = "warning";
     $http.post("charge", chargeData).success(function(data) {
-      console.log(data);
       var succeeded = true;
-      // Make sure they all succeeded.
       for (var i = 0; i < chargeData.ids.length; i++) {
-        succeeded = succeeded && data[parseInt(chargeData.ids[i])];
+        succeeded = succeeded && data[chargeData.ids[i]];
       }
       $scope.status = (succeeded) ? "success" : "danger";
     }).error(function(data) {
